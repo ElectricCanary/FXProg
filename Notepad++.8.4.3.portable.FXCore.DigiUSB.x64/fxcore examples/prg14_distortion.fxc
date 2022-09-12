@@ -1,0 +1,85 @@
+; Default program 14
+;
+; Distortion/overdrive
+; mono in/out
+;
+; pot0 = Input gain
+; pot1 = Low-pass frequency control
+; pot2 = Low-pass Q control
+; pot3 = Output level
+
+.rn       temp      r0
+.rn       temp2     r1
+.rn       in        r2
+.rn       inlp      r3
+.rn       hp        r4
+.rn       bp        r5
+.rn       lp        r6
+.rn       kf        r7
+.rn       kq        r8
+
+; gain
+cpy_cs    temp, in0
+cpy_cs    temp2, pot0_smth
+multrr    temp, temp2
+sls       acc32, 4
+adds      temp, acc32
+cpy_cc    in, acc32
+
+; adjust pot1 for f control
+; kf needs to range from 0.086 to about 0.95 
+cpy_cs    temp, pot1_smth
+multri    temp, 0.864             ; Coefficient is high end - low end
+addsi     acc32, 0.086            ; add in the low end
+cpy_cc    kf, acc32
+
+; adjust pot2 for Q control
+; range from about 0.8 to 0.05 for damping
+cpy_cs    acc32, pot2_smth        ; Read in pot1
+addsi     acc32, -1.0             ; acc32 ranges -1 to 0
+multri    acc32, 0.75             ; acc32 ranges -0.75 to 0
+neg       acc32                   ; acc32 ranges 0.75 to 0
+addsi     acc32, 0.05             ; acc32 ranges 0.8 to 0.05
+cpy_cc    kq, acc32
+
+; distortion
+; 0.5*IN + 0.8*(IN-sgn(IN)*IN^2)
+multrr    in, in                  ; IN^2
+jgez      in, jp1                 ; if IN is positive jump
+neg       acc32                   ; IN < 0 so negate it
+jp1:
+subs      in, acc32               ; IN-sgn(IN)*IN^2
+multri    acc32, 0.8              ; 0.8*(IN-sgn(IN)*IN^2)
+cpy_cc    temp, acc32             ; save to temp
+sra       in, 1                   ; 0.5*IN
+adds      temp, acc32             ; 0.5*IN + 0.8*(IN-sgn(IN)*IN^2)
+
+; now the SVF 
+; first a LP FIR with a null at Fs/2 to help make the filter stable
+; and allow a wider range of coefficients
+; input in acc32
+sra       acc32, 1                ; in/2
+cpy_cc    temp, acc32             ; save to temp
+adds      acc32, inlp             ; in/2 + input LP
+cpy_cc    in, acc32               ; save to in
+cpy_cc    inlp, temp              ; save in/2 to input LP
+; now the svf
+multrr    kf, bp                  ; Kf * BP
+adds      lp, acc32               ; + LP
+cpy_cc    lp, acc32               ; save to LP
+multrr    kq, bp                  ; Kq * BP
+adds      lp, acc32               ; LP + Kq * BP
+subs      in, acc32               ; IN - (LP + Kq * BP)
+cpy_cc    hp, acc32               ; save to HP
+multrr    kf, hp                  ; Kf * HP
+adds      bp, acc32               ; + BP
+cpy_cc    bp, acc32               ; Save to BP
+
+cpy_cs    temp, pot3_smth         ; Adjust output level
+multrr    temp, temp
+multrr    acc32, lp
+
+cpy_sc    out0, acc32             ; Send to out0 and out1
+cpy_sc    out1, acc32
+
+

@@ -1,0 +1,214 @@
+; Default program 3
+;
+; Large plate reverb
+; stereo in/out
+;
+; pot0 = reverb time
+; pot1 = lp filter
+; pot2 = ringing
+; pot3 = reverb level
+; pot4 = not used
+; pot5 = not used
+
+.mem    api1l       224           ;left input all passes
+.mem    api2l       430
+.mem    api3l       856
+.mem    api4l       1089
+
+.mem    api1r       156           ;right input all passes
+.mem    api2r       530
+.mem    api3r       956
+.mem    api4r       1289
+
+.mem    apd1        2301          ;loop all passes
+.mem    apd2        2902
+.mem    apd3        3171
+.mem    apd4        2401
+
+.mem    del1        3620          ;loop delays
+.mem    del2        4591
+.mem    del3        4387
+.mem    del4        3679
+
+// in FXCore we are using r15 for some operations
+.rn     temp	  r1
+.rn     krt         r2
+.rn     ksh         r3
+.rn     ksl         r4
+.rn     lap         r5
+.rn     rap         r6
+.rn     hp1         r7
+.rn     hp2         r8
+.rn     hp3         r9
+.rn     hp4         r10
+.rn     lp1         r11
+.rn     lp2         r12
+.rn     lp3         r13
+.rn     lp4         r14
+.rn     lup         mr0           ; since r15 is used to hold values for chr in 
+                                  ; FXCore we cannot use it here so use a mreg
+
+.equ    kapi        0.6           ;input AP coefficients
+.equ    kap         0.6           ;loop AP coefficients
+.equ    kfl         0.8           ;loop filter LPF freq
+.equ    kfh         0.02          ;loop filter HPF freq
+
+; let the assembler calculate the coefficients for us
+.equ    fs          48000
+.equ    f1          0.477
+.equ    f2          0.382
+.equ    pi          3.14159
+.equ    f1c         (2^31 - 1) * (2*pi*f1)/fs
+.equ    f2c         (2^31 - 1) * (2*pi*f2)/fs
+                                  ; in other examples we did not include the (2^31 - 1) factor
+                                  ; but in this example we are using .sreg.i which forces the assembler
+                                  ; to use the integer portion and not assume the result to fall between
+                                  ; +/-1.0 for an .sreg, .creg or .mreg directives 
+.sreg.i lfo0_f f1c
+.sreg.i lfo1_f f2c
+
+;now derive control coefficients from pots:
+cpy_cs    r0, pot0                ; read pot0 into r0
+log2      r0                      ; log2 into acc32
+sra       acc32, 1                ; /2 for sq root
+exp2      acc32                   ; back to linear
+multri    acc32, 0.8              ; range 0 to 0.8
+wrdld     r0, 0.1*32767           ; put 0.1 in r0
+adds      acc32, r0               ; range 0.1 to 0.9
+cpy_cc    krt, acc32              ; save as krt
+
+;now do input all passes, leave headroom:
+cpy_cs    acc32, in0              ; read in input 0 (left)
+sra       acc32, 2                ; shift right by 2 for /4
+apa       kapi, api1l#            ; first input ap
+apb       -kapi, api1l
+apa       kapi, api2l#            ; second input ap
+apb       -kapi, api2l
+apa       kapi, api3l#            ; third input ap
+apb       -kapi, api3l
+apa       kapi, api4l#            ; fourth input ap
+apb       -kapi, api4l
+cpy_cc    lap, acc32              ; save in lap
+
+cpy_cs    acc32, in1              ; read in input 1 (right)
+sra       acc32, 2                ; shift right by 2 for /4
+apa       kapi, api1r#            ; first input ap
+apb       -kapi, api1r
+apa       kapi, api2r#            ; second input ap
+apb       -kapi, api2r
+apa       kapi, api3r#            ; third input ap
+apb       -kapi, api3r
+apa       kapi, api4r#            ; fourth input ap
+apb       -kapi, api4r
+cpy_cc    rap, acc32              ; save in rap
+
+
+;all passed inputs in place, now process the loop, with filtering:
+cpy_cm    r0, lup                 ; the code left the result in acc to add to lup so we
+adds      acc32, r0               ; load into a different core reg then add
+apa       kap, apd1#              ; loop ap
+apb       -kap, apd1
+wrdel     del1, acc32             ; write result to head of del1
+wrdld     acc32, 0x7fff
+ori       acc32, 0xffff           ; load 0.99.. into acc32
+cpy_cs    r0, pot1_smth
+subs      acc32, r0
+cpy_cc    r0, acc32
+rddel     acc32, del1#            ; read tail of del1
+subs      acc32, lp1
+multrr    acc32, r0
+adds      lp1, acc32
+cpy_cc    lp1, acc32
+multrr    acc32, krt              ; multiply by krt coefficient
+
+
+adds      acc32, lap              ; load into a different core reg then add
+apa       kap, apd2#              ; loop ap
+apb       -kap, apd2
+wrdel     del2, acc32             ; write result to head of del2
+rddel     acc32, del2#            ; read tail of del2
+subs      acc32, lp2
+multrr    acc32, r0
+adds      lp2, acc32
+cpy_cc    lp2, acc32
+multrr    acc32, krt              ; multiply by krt coefficient
+
+
+adds      acc32, rap              ; load into a different core reg then add
+apa       kap, apd3#              ; loop ap
+apb       -kap, apd3
+wrdel     del3, acc32             ; write result to head of del3
+rddel     acc32, del3#            ; read tail of del3
+subs      acc32, lp3
+multrr    acc32, r0
+adds      lp3, acc32
+cpy_cc    lp3, acc32
+multrr    acc32, krt              ; multiply by krt coefficient
+
+
+adds      acc32, lap              ; load into a different core reg then add
+apa       kap, apd4#              ; loop ap
+apb       -kap, apd4
+wrdel     del4, acc32             ; write result to head of del4
+rddel     acc32, del4#            ; read tail of del4
+subs      acc32, lp4
+multrr    acc32, r0
+adds      lp4, acc32
+cpy_cc    lp4, acc32
+cpy_mc    lup, acc32              ; save for next time through loop
+
+;now gather outputs from loop delays:
+clracc64                          ; clear the 64-bit accumulator
+machid    0.8, del1+201           ; add in taps from delays
+machid    0.7, del2+1345
+machid    0.6, del3+897
+machid    0.5, del4+1780
+sat64     acc32                   ; copy upper 32 bits to acc32
+cpy_cs    r0, pot3_smth           ; read in pot4
+multrr    acc32, r0               ; multiply by pot4
+cpy_cs    r0, in0                 ; read left in
+adds      r0, acc32               ; add wet to dry
+cpy_sc    out0, acc32             ; and write to the left DAC output
+
+clracc64                          ; clear the 64-bit accumulator
+machid    0.8, del1+1201          ; add in taps from delays
+machid    0.7, del2+145
+machid    0.6, del3+487
+machid    0.5, del4+780
+sat64     acc32                   ; copy upper 32 bits to acc32
+cpy_cs    r0, pot3_smth           ; read in pot4 again since r0 was written over above
+multrr    acc32, r0               ; multiply by pot4
+cpy_cc    temp, acc32             ; save wet signal to temp
+cpy_cs    acc32, switch           ; get switchs
+andi      acc32, sw0              ; maskoff sw0
+jnz       acc32, stereo           ; if 1 is stereo
+cpy_cs    r0, in0                 ; mono so get in0
+jmp       rev_out
+stereo:
+cpy_cs    r0, in1                 ; stereo so get in1
+rev_out:
+adds      r0, temp                ; add in the wet signal
+cpy_sc    out1, acc32             ; and write to the right DAC output
+
+
+;now affect each delay with an LFO:
+; read in the ring level pot and use it to adjust depth for LFO 0
+cpy_cs    r0, pot2_smth
+wrdld     acc32, 39
+multrr    acc32, r0
+cpy_cc    r15, acc32
+chr       lfo0|sin, apd1+40
+wrdel     apd1+90, acc32
+
+chr       lfo0|cos, apd2+30
+wrdel     apd2+80, acc32
+
+; adjust for LFO1, pot2 still in r0
+wrdld     acc32, 34
+multrr    acc32, r0
+cpy_cc    r15, acc32
+chr       lfo1|sin, apd3+40
+wrdel     apd3+90, acc32
+
+chr       lfo1|cos, apd4+50
+wrdel     apd4+100, acc32

@@ -1,0 +1,91 @@
+; Default program 7
+;
+; Through Zero Flanger
+; Mono in/out, tap button causes sweep to go out and back
+;
+; pot0 = rate out
+; pot1 = rate back
+; pot2 = feedback
+; pot3 = level
+; pot4 = zero point
+; pot5 =  
+
+.equ      maxdel        8192
+.equ      zp            maxdel/32
+.equ      sweep         0x0100
+
+.mem      delay         maxdel
+.mem      zp_del        zp
+
+.rn       temp          r0
+.rn       counter       r1
+.rn       p0            r2
+.rn       p1            r3
+.rn       p3            r4
+.rn       feedback      r5
+.rn       zero_point    r6
+
+cpy_cs    p3, pot3_smth           ; get level pot
+cpy_cs    temp, in0               ; get input
+wrdel     zp_del, temp            ; write input to dry delay line
+adds      temp, feedback          ; add feedback to dry
+multrr    acc32, p3               ; adjust level
+wrdel     delay, acc32            ; write to flanger delay line
+
+cpy_cs    acc32, pot4             ; get zero point pot
+wrdld     temp, zp                ; get length of zero point delay
+multrr    acc32, temp             ; calculate length
+multri    acc32, 0.99             ; limit max value to allow for adding a small amount
+wrdld     temp, 0x0004            ; add a small amount to not be 0
+add       temp, acc32
+cpy_cc    zero_point, acc32       ; zero point
+
+xor       acc32, acc32            ; clear acc32
+ori       acc32, 0x0010           ; load a minimum value into acc32 in case pot is 0
+cpy_cc    temp, acc32             ; save it
+cpy_cs    acc32, pot0_smth        ; read in pot0
+multrr    acc32, acc32
+adds      acc32, temp             ; add the minimum value
+cpy_cc    p0, acc32               ; save it
+cpy_cs    acc32, pot1_smth        ; read in pot 1
+multrr    acc32, acc32
+adds      acc32, temp             ; add the minimum value
+cpy_cc    p1, acc32               ; save it
+
+andi      flags, taplvl           ; get the tap button state
+jnz       acc32, isnzero          ; if != 0 jump (pin has pull-up so pressed button is a 0)
+xor       acc32, acc32            ; clear acc
+ori       acc32, sweep            ; load in a small increment value
+multrr    acc32, p0               ; multiply by out speed pot
+adds      counter, acc32          ; add the increment to the counter
+cpy_cc    counter, acc32          ; save it back but check it
+wrdld     temp, maxdel            ; load the max delay line length
+subs      temp, acc32             ; maxlength - counter value
+jgez      acc32, ango             ; if >=0 we are less than or equal to max so jump 
+cpy_cc    counter, temp           ; if here counter > maxlength so load max length
+jmp       ango                    ; jump over the decrement part
+
+isnzero:
+jz        counter, ango           ; if count is 0 jump to output
+xor       acc32, acc32            ; clear acc
+ori       acc32, sweep            ; load in a small increment value
+multrr    acc32, p1               ; multiply by in speed pot
+subs      counter, acc32          ; subtract the value
+jgez      acc32, ldres            ; if >= 0 jump
+xor       acc32, acc32            ; was <0 so load 0
+ldres:
+cpy_cc    counter, acc32          ; save to counter reg
+
+ango:
+interp    counter, delay          ; linear interp the values in the delay line
+cpy_cc    temp, acc32             ; save to temp
+interp    zero_point, zp_del      ; linear interp zero point sample
+subs      acc32, temp             ; subtract the value from the delay line so we can get a null at
+                                  ; the zero point if feedback is zero, more comb effect if no
+cpy_sc    out0, acc32             ; write to the output
+cpy_sc    out1, acc32             ; write to the output
+cpy_cc    temp, acc32             ; copy to temp
+cpy_cs    acc32, pot2_smth        ; get feedback level
+multri    acc32, 0.8              ; limit fedback range
+multrr    temp, acc32             ; set feedback
+cpy_cc    feedback, acc32         ; and save

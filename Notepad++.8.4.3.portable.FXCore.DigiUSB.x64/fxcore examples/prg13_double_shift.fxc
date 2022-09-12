@@ -1,0 +1,60 @@
+; Default program 13
+;
+; Double pitch shift
+; mono in/out
+;
+; pot0 = shifter 0
+; pot1 = level
+; pot2 = shifter 1
+; pot3 = level
+; pot4 = dry level
+; pot5 = not used
+
+.equ      shiftbase    -1048576   ; shift of +1 octave
+
+.rn       temp      r0            ; temp reg
+.rn       temp2     r1            ; and another
+.rn       input     r2            ; input
+
+
+; Define the delay block for the pitch delay
+.mem      pdelay    4096
+
+cpy_cs    temp, pot0_smth         ; read in pot0
+addsi     temp, -0.5              ; ranges -0.5 to 0.5 in acc32
+wrdld     temp,shiftbase.u        ; Put upper part of shiftbase into temp
+multrr    acc32, temp             ; Multiply the adjusted POT0 value by shiftbase
+jgez      acc32, OK               ; If positive jump over the multiply by 2
+sls       acc32, 1                ; Do the multiply by shifting left 1 bit
+OK:
+cpy_sc    ramp0_f, acc32          ; Write the result to the ramp0 frequency control
+
+cpy_cs    temp, pot2_smth         ; read in pot0
+addsi     temp, -0.5              ; ranges -0.5 to 0.5
+wrdld     temp,shiftbase.u        ; Put upper part of shiftbase into temp
+multrr    acc32, temp             ; Multiply the adjusted POT0 value by shiftbase
+jgez      acc32, OK2              ; If positive jump over the multiply by 2
+sls       acc32, 1                ; Do the multiply by shifting left 1 bit
+OK2:
+cpy_sc    ramp1_f, acc32          ; Write the result to the ramp1 frequency control
+
+cpy_cs    input, in0              ; Read channel 0 input
+wrdel pdelay, input               ; Write it to the delay
+
+pitch     rmp0|l4096, pdelay      ; Do the shift, result will be in ACC32
+cpy_cs    temp, pot1_smth         ; level from pot 1
+multrr    temp, acc32             ; multiply it
+cpy_cc    temp, acc32             ; and save to temp
+
+pitch rmp1|l4096, pdelay          ; Do the second shift, result will be in ACC32
+cpy_cs    temp2, pot3_smth        ; level from pot 3
+multrr    temp2, acc32            ; multiply it
+cpy_cc    temp2, acc32            ; and save to temp2
+
+cpy_cs    acc32, pot4_smth        ; level from pot 4 for dry
+multrr    acc32, input            ; multiply it
+adds      acc32, temp             ; add result of first shifter
+adds      acc32, temp2            ; add result of second shifter
+
+cpy_sc out0, acc32                ; Write to output 0
+cpy_sc out1, acc32                ; Write to output 1

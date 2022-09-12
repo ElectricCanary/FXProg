@@ -1,0 +1,221 @@
+; Default program 10
+;
+; Function generator
+; mono out
+;
+;
+; pot0 = Frequency
+; pot1 = Sine wave amplitude
+; pot2 = Sawtooth wave amplitude
+; pot3 = Triangle wave amplitude
+; pot4 = Square wave amplitude
+
+
+.rn       temp      r0
+.rn       temp2     r1
+.rn       phase     r2
+.rn       increment r3
+.rn       min_inc   r4       
+
+; sine table contains one sine wave
+.mreg	mr0	0
+.mreg	mr1	0.049067674
+.mreg	mr2	0.09801714
+.mreg	mr3	0.146730474
+.mreg	mr4	0.195090322
+.mreg	mr5	0.24298018
+.mreg	mr6	0.290284677
+.mreg	mr7	0.336889853
+.mreg	mr8	0.382683432
+.mreg	mr9	0.427555093
+.mreg	mr10	0.471396737
+.mreg	mr11	0.514102744
+.mreg	mr12	0.555570233
+.mreg	mr13	0.595699304
+.mreg	mr14	0.634393284
+.mreg	mr15	0.671558955
+.mreg	mr16	0.707106781
+.mreg	mr17	0.740951125
+.mreg	mr18	0.773010453
+.mreg	mr19	0.803207531
+.mreg	mr20	0.831469612
+.mreg	mr21	0.85772861
+.mreg	mr22	0.881921264
+.mreg	mr23	0.903989293
+.mreg	mr24	0.923879533
+.mreg	mr25	0.941544065
+.mreg	mr26	0.956940336
+.mreg	mr27	0.970031253
+.mreg	mr28	0.98078528
+.mreg	mr29	0.98917651
+.mreg	mr30	0.995184727
+.mreg	mr31	0.998795456
+.mreg	mr32	0.999999999
+.mreg	mr33	0.998795456
+.mreg	mr34	0.995184727
+.mreg	mr35	0.98917651
+.mreg	mr36	0.98078528
+.mreg	mr37	0.970031253
+.mreg	mr38	0.956940336
+.mreg	mr39	0.941544065
+.mreg	mr40	0.923879533
+.mreg	mr41	0.903989293
+.mreg	mr42	0.881921264
+.mreg	mr43	0.85772861
+.mreg	mr44	0.831469612
+.mreg	mr45	0.803207531
+.mreg	mr46	0.773010453
+.mreg	mr47	0.740951125
+.mreg	mr48	0.707106781
+.mreg	mr49	0.671558955
+.mreg	mr50	0.634393284
+.mreg	mr51	0.595699304
+.mreg	mr52	0.555570233
+.mreg	mr53	0.514102744
+.mreg	mr54	0.471396737
+.mreg	mr55	0.427555093
+.mreg	mr56	0.382683432
+.mreg	mr57	0.336889853
+.mreg	mr58	0.290284677
+.mreg	mr59	0.24298018
+.mreg	mr60	0.195090322
+.mreg	mr61	0.146730474
+.mreg	mr62	0.09801714
+.mreg	mr63	0.049067674
+.mreg	mr64	0
+.mreg	mr65	-0.049067674
+.mreg	mr66	-0.09801714
+.mreg	mr67	-0.146730474
+.mreg	mr68	-0.195090322
+.mreg	mr69	-0.24298018
+.mreg	mr70	-0.290284677
+.mreg	mr71	-0.336889853
+.mreg	mr72	-0.382683432
+.mreg	mr73	-0.427555093
+.mreg	mr74	-0.471396737
+.mreg	mr75	-0.514102744
+.mreg	mr76	-0.555570233
+.mreg	mr77	-0.595699304
+.mreg	mr78	-0.634393284
+.mreg	mr79	-0.671558955
+.mreg	mr80	-0.707106781
+.mreg	mr81	-0.740951125
+.mreg	mr82	-0.773010453
+.mreg	mr83	-0.803207531
+.mreg	mr84	-0.831469612
+.mreg	mr85	-0.85772861
+.mreg	mr86	-0.881921264
+.mreg	mr87	-0.903989293
+.mreg	mr88	-0.923879533
+.mreg	mr89	-0.941544065
+.mreg	mr90	-0.956940336
+.mreg	mr91	-0.970031253
+.mreg	mr92	-0.98078528
+.mreg	mr93	-0.98917651
+.mreg	mr94	-0.995184727
+.mreg	mr95	-0.998795456
+.mreg	mr96	-1.0
+.mreg	mr97	-0.998795456
+.mreg	mr98	-0.995184727
+.mreg	mr99	-0.98917651
+.mreg	mr100	-0.98078528
+.mreg	mr101	-0.970031253
+.mreg	mr102	-0.956940336
+.mreg	mr103	-0.941544065
+.mreg	mr104	-0.923879533
+.mreg	mr105	-0.903989293
+.mreg	mr106	-0.881921264
+.mreg	mr107	-0.85772861
+.mreg	mr108	-0.831469612
+.mreg	mr109	-0.803207531
+.mreg	mr110	-0.773010453
+.mreg	mr111	-0.740951125
+.mreg	mr112	-0.707106781
+.mreg	mr113	-0.671558955
+.mreg	mr114	-0.634393284
+.mreg	mr115	-0.595699304
+.mreg	mr116	-0.555570233
+.mreg	mr117	-0.514102744
+.mreg	mr118	-0.471396737
+.mreg	mr119	-0.427555093
+.mreg	mr120	-0.382683432
+.mreg	mr121	-0.336889853
+.mreg	mr122	-0.290284677
+.mreg	mr123	-0.24298018
+.mreg	mr124	-0.195090322
+.mreg	mr125	-0.146730474
+.mreg	mr126	-0.09801714
+.mreg	mr127	-0.049067674
+
+.creg     phase     0
+.creg     increment 0x7FE00000
+.creg     min_inc   0x00200000
+
+
+; calculate the phase increment
+cpy_cs    acc32, pot0_smth
+multrr    acc32, acc32
+multrr    acc32, increment
+add       acc32, min_inc          ; NOTE non-saturated add so phase counter rolls over
+add       acc32, phase            ; again non-saturated!
+cpy_cc    phase, acc32            ; save new phase
+
+clracc64                          ; Clear the 64 bit accumulator
+
+; SINE wave
+; the 7 MSBs tell us which mreg to read first
+; the remaining 25 bits are for interpolation
+sr        phase, 25               ; get top 7 bits as pointer into sine table
+cpy_cc    temp2, acc32            ; save pointer to temp2
+cpy_cmx   temp, acc32             ; read from table into temp
+xor       acc32, acc32            ; clear acc32
+ori       acc32, 0x0001           ; set the lsb
+add       acc32, temp2            ; add to the pointer
+cpy_cmx   acc32, acc32            ; read in second vale from table
+subs      acc32, temp             ; S2 - S1
+cpy_cc    temp2, acc32            ; save it
+sl        phase, 7                ; get rid of top 7 bits
+sr        acc32, 1                ; shift 1 back to set sign to 0
+multrr    acc32, temp2            ; x*(S2-S1)
+adds      temp, acc32             ; +S1
+cpy_cc    temp, acc32             ; save result to temp
+cpy_cs    acc32, pot1_smth        ; pot1 controls sine amplitude
+multrr    acc32, acc32            ; square pot 
+machrr    temp, acc32             ; acc64 = scaled sine wave
+
+
+; Sawtooth wave
+; The phase counter register is a sawtooth so just use it
+cpy_cs    acc32, pot2_smth        ; pot 2 controls sawtooth amplitude
+multrr    acc32, acc32            ; square pot
+machrr    phase, acc32            ; add scaled sawtooth
+
+
+; Triangle wave
+; We can create a triangle by taking the abs of the sawtooth (phase reg)
+; shifting down 1/2 and doubling it
+abs       phase                   ; make it a triangle from 0 to 1
+addsi     acc32, -0.5             ; now between -0.5 and 0.5
+sls       acc32, 1                ; shift left 1 bit for a x2
+cpy_cc    temp, acc32             ; save result to temp
+cpy_cs    acc32, pot3_smth        ; pot 3 controls triangle amplitude
+multrr    acc32, acc32            ; square pot
+machrr    temp, acc32             ; add scaled triangle wave
+
+
+; Square wave
+; Either +1 or -1 based on sign of phase register
+wrdld     acc32, 0x8000           ; put -1.0 into temp
+jneg      phase, set_sq           ; if phase is negative jump
+neg       acc32                   ; phase was positive so make it positive
+set_sq:
+cpy_cc    temp, acc32             ; save result to temp
+cpy_cs    acc32, pot4_smth        ; pot 4 controls square amplitude
+multrr    acc32, acc32            ; square pot 
+machrr    temp, acc32             ; add scaled square wave
+
+sat64     acc32                   ; Get accumulated result back
+
+; output result
+cpy_sc    out0, acc32
+cpy_sc    out1, acc32

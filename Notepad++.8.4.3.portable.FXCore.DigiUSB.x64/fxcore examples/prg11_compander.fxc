@@ -1,0 +1,221 @@
+; Default program 11
+;
+; Compander
+; mono in/out
+; 
+; This programis a bit tricky, we are doing compression and expansion so good
+; settings are tricky and you may need to adjust the "signal" value to better
+; work for you. We are doing a simple absolute value in the code below but you
+; could average the signal over time or do an RMS value 
+;
+; The LEDs indicate the amount of compression or expansion, as a reference
+; set pot0 (compression threshold) to about 75% and pot2 (expansion threshold)
+; to about 25% and with no signal USR0 will be off because the signal level
+; is below the compression threshold but usr1 is on bright as the signal is below
+; the expansion threshold so maximum expansion is happening. As the signal increases
+; usr0 will begin to turn on as transients trigger compression and usr1 will get
+; dimmer or turn off as the signal exceeds the expansion threshold.
+;
+;
+; Pot0 = Compression Threshold (Tc)
+; Pot1 = Compression Ratio (Rc)
+; Pot2 = Expansion Threshold (Te)
+; Pot3 = Expansion Ratio (Re)
+; Pot4 = Attack Time (At)
+; Pot5 = Release Time (Rt)
+;
+; SW0 = 0: Compare in0 to in1 and use the higher amplitude signal in the compander on both channels
+;       1: In0 is master and used in the compander, gain result used on both channels
+;
+;
+.rn       temp      r0
+.rn       signal    r1
+.rn       Tc        r2
+.rn       Rc        r3            ; actually holds 1-1/Rc
+.rn       Gc        r4
+.rn       Te        r5
+.rn       Re        r6            ; actually holds 1-Re
+.rn       Ge        r7
+.rn       At        r8
+.rn       Rt        r9
+.rn       c_bright  r10
+.rn       e_bright  r11
+.rn       dev       r12
+
+; preset values for the gains, we are assuming neither compression or 
+; expansion are active so both are "1" and just pass signal.
+.creg     Gc        0x7FFFFFFF
+.creg     Ge        0x7FFFFFFF
+
+cpy_cs    temp, pot0_smth
+multrr    temp, temp              ; square the pot for more of a log control
+cpy_cc    Tc, acc32
+
+; Reg Rc really holds 1-(1/Rc) but the pot goes 0 to 1
+; and as Rc goes from 1 to inf the result of 1-(1/Rc)
+; goes 0 to 1 so we can use the pot directly
+cpy_cs    Rc, pot1_smth
+
+cpy_cs    temp, pot2_smth
+multrr    temp, temp              ; square the pot for more of a log control
+cpy_cc    temp, acc32             ; copy to temp
+multri    Tc, 0.75
+subs      temp, acc32             ; is expansion threshold > 0.75(compression threshold)?
+jneg      acc32, save_te          ; no so use Te from pot2
+multri    Tc, 0.75
+cpy_cc    temp, acc32             ; yes so use 0.75*Tc level as Te must be less than Tc
+save_te:
+cpy_cc    Te, temp
+
+; Reg Re holds (1-Re)/8
+; Since the ratio ranges 1 to infinity Re ranges 1 to -infinity whis is
+; neither realistic nor possible in a fixed point device so we interpret the
+; pot input as going from 1 to 9 but that means that (1-Re) must range
+; as 0 to -8 so we make the pot go 0 to -1 and we interpret this as 0 to -8.0
+; so we mult multiply by 8 in the expander code to account for this
+cpy_cs    acc32, pot3_smth        ; ranges 0 to 1
+neg       acc32                   ; now 0 to -1
+cpy_cc    Re, acc32               ; save it
+
+cpy_cs    temp, pot4_smth         ; read pot
+wrdld     acc32, 0x7fff           ; load (almost) 1.0 into acc32
+ori       acc32, 0xffff
+subs      acc32, temp             ; make pot range 1 to 0 instead of 0 to 1
+cpy_cc    temp, acc32
+wrdld     acc32, 0x0400           ; scale for desired range
+multrr    acc32, temp
+cpy_cc    At, acc32
+
+cpy_cs    temp, pot5_smth         ; read pot
+wrdld     acc32, 0x7fff           ; load (almost) 1.0 into acc32
+ori       acc32, 0xffff
+subs      acc32, temp             ; make pot range 1 to 0 instead of 0 to 1
+cpy_cc    temp, acc32
+wrdld     acc32, 0x0004           ; scale for desired range
+multrr    acc32, temp
+cpy_cc    Rt, acc32
+
+; do input selection
+cpy_cs    acc32, in0              ; read input
+abs       acc32                   ; absolute value
+cpy_cc    signal, acc32           ; save to signal
+; check switch
+cpy_cs    acc32, switch           ; get switches SFR
+andi      acc32, sw0              ; isolate switch 0
+jnz       acc32, do_comp          ; if 1 then in0 is master for both channels
+cpy_cs    acc32, in1              ; else read in1 and compare levels
+abs       acc32                   ; absolute value
+cpy_cc    temp, acc32             ; save to temp
+subs      signal, temp            ; |in0| - |in1|
+jgez      acc32, do_comp          ; if >=0 then in0 >= in1 so go to compressor
+cpy_cc    signal, temp            ; was <0 so in1 > in0 copy in0 to signal
+
+do_comp:
+; is signal above compression threshold?
+subs      signal, Tc              ; signal - compression threshold
+jneg      acc32,comp_rel          ; if negative then signal < compression threshold so jump
+; compression attack calculation
+log2      signal                  ; log2(signal)
+cpy_cc    temp, acc32             ; save in temp
+log2      Tc                      ; log2(Tc)
+subs      acc32, temp             ; log2(Tc) - log2(signal)
+multrr    acc32, Rc               ; (1 - 1/Rc)*(log2(Tc) - log2(signal))
+exp2      acc32                   ; and back to linear
+subs      acc32, Gc               ; Smooth Gc using At as the coefficient
+multrr    acc32, At
+adds      acc32, Gc
+cpy_cc    Gc, acc32
+jmp       expand                  ; done with compression jump to expansion
+; compression release calculation - smooth Gc to 1.0
+comp_rel:
+addsi     Gc, -1.0                ; We calculate Gc-Rt(Gc - 1)
+multrr    acc32, Rt               ; which is the same as Gc+Rt(1-Gc)
+subs      Gc, acc32               ; Easier since we cannot do a "addsi Gc, 1.0"
+cpy_cc    Gc, acc32
+
+expand:
+; is signal below expansion threshold?
+subs      signal, Te              ; signal - expansion threshold
+jgez      acc32, exp_release      ; if positive signal > expansion threshold so jump
+; expansion attack calculation
+log2      signal                  ; log2(signal)
+cpy_cc    temp, acc32             ; save in temp
+log2      Te                      ; log2(Te)
+subs      acc32, temp             ; log2(Te) - log2(signal)
+multrr    acc32, Re               ; (1 - Re)*(log2(Te) - log2(signal))
+sls       acc32, 3                ; *8 since Re really has (1-Re)/8 
+exp2      acc32                   ; and back to linear
+subs      acc32, Ge               ; Smooth Ge using At as the coefficient
+multrr    acc32, At
+adds      acc32, Ge
+cpy_cc    Ge, acc32
+jmp       out                     ; done with expansion jump to out
+; expansion release calculation - smooth Ge to 1.0
+exp_release:
+addsi     Ge, -1.0                ; We calculate Ge-Rt(Ge - 1)
+multrr    acc32, Rt               ; which is the same as Ge+Rt(1-Ge)
+subs      Ge, acc32               ; Easier since we cannot do a "addsi Ge, 1.0"
+cpy_cc    Ge, acc32
+
+out:
+cpy_cs    temp, in0
+multrr    Gc, temp
+multrr    Ge, acc32
+cpy_sc    out0, acc32
+
+cpy_cs    temp, in1
+multrr    Gc, temp
+multrr    Ge, acc32
+cpy_sc    out1, acc32
+
+
+; PWM usr0 for compression level
+cpy_cs    acc32, samplecnt        ; Get the sample counter
+andi      acc32, 0xFF             ; Mask b[7:0]
+jnz       acc32, doPWM0            ;
+
+; Reload new PWM value from LFO0_s into "bright"
+; Since Gc is 1 at no compression we really want the LSD to display
+; 1-Gc
+wrdld     acc32, 0x7FFF           ; put almost 1.0 into acc32
+subs      acc32, Gc               ; 1 - Gc
+sra       acc32, 23               ; shift the PWM value in place
+cpy_cc    c_bright, acc32         ; save it
+
+doPWM0:
+; Performing the decrement prior to driving the LED makes sure
+; that the LED can go completly off.
+addi      c_bright, -1            ; subtract 1 from on count
+cpy_cc    c_bright, acc32         ; Save updated "bright"
+xor       acc32, acc32            ; Clear acc32 for the LED off case
+jneg      c_bright, doLED0        ;
+ori       acc32, 1                ; Set acc32[0] for the LED on case
+
+doLED0:
+set       user0|0, acc32          ; set the usr0 output per the acc32 LSB
+
+
+; PWM usr1 for expansion level
+cpy_cs    acc32, samplecnt        ; Get the sample counter
+andi      acc32, 0xFF             ; Mask b[7:0]
+jnz       acc32, doPWM1           ;
+
+; Reload new PWM value from LFO0_s into "bright"
+; Since Ge is 1 at no compression we really want the LSD to display
+; 1-Ge
+wrdld     acc32, 0x7FFF           ; put almost 1.0 into acc32
+subs      acc32, Ge               ; 1-Ge
+sra       acc32, 23               ; shift the PWM value in place
+cpy_cc    e_bright, acc32         ; save it        
+
+doPWM1:
+; Performing the decrement prior to driving the LED makes sure
+; that the LED can go completly off.
+addi      e_bright, -1            ; subtract 1 from on count
+cpy_cc    e_bright, acc32         ; Save updated "bright"
+xor       acc32, acc32            ; Clear acc32 for the LED off case
+jneg      e_bright, doLED1        ;
+ori       acc32, 1                ; Set acc32[0] for the LED on case
+
+doLED1:
+set       user1|0, acc32          ; set the usr0 output per the acc32 LSB

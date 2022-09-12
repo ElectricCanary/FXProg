@@ -1,0 +1,207 @@
+; Default program 2
+;
+; Cathedral reverb
+; stereo in/out
+;
+; pot0 = predelay 
+; pot1 = reverb time
+; pot2 = lp filter
+; pot3 = reverb level
+; pot4 = not used
+; pot5 = not used
+;
+; sw0 = 0 : Mono in use in0 (left) for both channels
+;       1 : Stereo in
+
+.mem    pdel        3276
+.mem    tdel        7000
+
+.mem    ap1         223
+.mem    ap2         436
+.mem    ap3         867
+.mem    ap4         1191
+
+.mem    tap1        245
+.mem    tap2        458
+
+.mem    lap1a       1278
+.mem    lap1b       2187
+.mem    lap1c       2441
+.mem    d1          3736
+.mem    lap2a       1198
+.mem    lap2b       1867
+.mem    lap2c       2767
+.mem    d2          3491
+
+;declare registers:
+
+.rn     del         r1
+.rn     krt         r2
+.rn     kd          r3
+.rn     pout        r4
+.rn     apout       r5
+.rn     temp        r6
+.rn     lp1         r7
+.rn     lp2         r8
+.rn     hp1         r9
+.rn     hp2         r10
+.rn     tlp         r11
+.rn     ksh         r12
+.rn     ksl         r13
+.rn     lpt         r14
+
+.equ    kfl         0.8           ;loop filter LPF freq
+.equ    kfh         0.02          ;loop filter HPF freq
+.equ    fs          32768
+.equ    freq        0.8
+.equ    pi          3.14159
+.equ    lfo_f_coeff (2*pi*freq)/fs; calculate the LFO coefficient, SEE NOTE
+
+                                  ; NOTE: The datasheet states the equation is:
+                                  ; (2^31 - 1)*(2*pi*freq)/fs
+                                  ; but we are missing the (2^31 - 1)
+                                  ; this is because the equation solver in the assembler assumes all
+                                  ; calculated values for .creg, .sreg and .mreg directives resolve to +/-1.0 and
+                                  ; will scale them automatically by 2^31-1
+                                  ; if you were to directly enter a vlaue like 0x12345678 then you would
+                                  ; just do it like: .sreg lfo0_f 0x12345678
+
+.sreg   lfo0_f      lfo_f_coeff 
+
+
+;program:
+
+;prepare predelay pot:
+cpy_cs    r0, pot0_smth           ; get the smoothed value
+wrdld     temp, pdel!             ; load in the length of the delay
+multrr    r0, temp                ; multiply them
+cpy_cc    del, acc32              ; save it to the del register
+
+;prepare decay pot:
+cpy_cs    r0, pot1
+multri    r0, 0.97
+cpy_cc    krt, acc32
+
+;low pass filter
+cpy_cs    acc32, pot2             ; read in pot2
+wrdld     r0, 16384               ; put 0.5... into r0
+multrr    r0, acc32
+adds      r0, acc32
+cpy_cc    ksl, acc32
+
+;feed inputs to predelay:
+cpy_cs    acc32, in0
+cpy_cs    r0, in1                 ; read in left and right and add together
+adds      r0, acc32
+sra       acc32, 2                ; mult by 0.25
+wrdel     pdel, acc32             ; write to delay
+
+;read predelay output and write to tdel input:
+wrdld     temp, pdel              ; get the base address of the delay
+add       temp, del               ; add the offset calculated above
+sr        acc32, 16               ; shift down to lower bits
+rddelx    acc32, acc32            ; read in from delay
+wrdel     tdel, acc32             ; write to tdel in reverb
+
+;now do reverb:
+apa       0.5, ap1#
+apb       -0.5, ap1
+apa       0.5, ap2#
+apb       -0.5, ap2
+apa       0.5, ap3#
+apb       -0.5, ap3
+apa       0.5, ap4#
+apb       -0.5, ap4
+cpy_cc    apout, acc32
+
+rddel     acc32, d2#
+multrr    acc32, krt
+adds      acc32, apout
+apa       0.5, lap1a#
+apb       -0.5, lap1a
+apa       0.5, lap1b#
+apb       -0.5, lap1b
+apa       0.5, lap1c#
+apb       -0.5, lap1c
+subs      acc32, lp1
+multrr    acc32, ksl
+adds      lp1, acc32
+cpy_cc    lp1, acc32
+wrdel     d1, acc32
+
+rddel     acc32, d1#
+multrr    acc32, krt
+adds      acc32, apout
+apa       0.5, lap2a#
+apb       -0.5, lap2a
+apa       0.5, lap2b#
+apb       -0.5, lap2b
+apa       0.5, lap2c#
+apb       -0.5, lap2c
+subs      acc32, lp2
+multrr    acc32, ksl
+adds      lp2, acc32
+cpy_cc    lp2, acc32
+wrdel     d2, acc32
+
+;do all passes within tdel, and filter tdel input:
+rddel     acc32, tdel+1000
+apa       0.5, tap1#
+apb       -0.5, tap1
+
+; lp filter fixed Fc
+subs      acc32, lpt
+multri    acc32, 0.1
+adds      acc32, lpt
+cpy_cc    lpt, acc32
+wrdel     tdel+1001, acc32
+
+rddel     acc32, tdel+3000
+apa       0.5, tap2#
+apb       -0.5, tap2
+wrdel     tdel+3001, acc32
+
+;now combine initial sound with reverb out to DACs:
+clracc64                          ; clear the 64-bit accumulator
+machid    0.65, tdel+2201         ; add in taps from delays
+machid    0.8, tdel+3256
+machid    0.8, tdel+5409
+machid    0.7, tdel+6100
+machid    0.99, d1
+sat64     acc32                   ; copy upper 32 bits to acc32
+cpy_cs    r0, pot3_smth
+multrr    acc32, r0
+cpy_cs    r0, in0
+adds      r0, acc32
+cpy_sc    out0, acc32
+
+
+clracc64                          ; clear the 64-bit accumulator
+machid    0.65, tdel+2800         ; add in taps from delays
+machid    0.8, tdel+3256
+machid    0.8, tdel+5047
+machid    0.7, tdel+7000
+machid    0.99, d2
+sat64     acc32                   ; copy upper 32 bits to acc32
+cpy_cs    r0, pot3_smth
+multrr    acc32, r0
+cpy_cc    temp, acc32             ; save wet signal to temp
+cpy_cs    acc32, switch           ; get switchs
+andi      acc32, sw0              ; maskoff sw0
+jnz       acc32, stereo           ; if 1 is stereo
+cpy_cs    r0, in0                 ; mono so get in0
+jmp       rev_out
+stereo:
+cpy_cs    r0, in1                 ; stereo so get in1
+rev_out:
+adds      r0, temp                ; add in the wet signal
+cpy_sc    out1, acc32
+
+;finally, put 'air' in lap(x)c elements:
+xor       acc32, acc32
+ori       acc32, 100
+cpy_cc    r15, acc32
+chr       lfo0|sin,lap1c+100
+wrdel     lap1c+200, acc32
+chr       lfo0|cos,lap2c+100
+wrdel     lap2c+200, acc32

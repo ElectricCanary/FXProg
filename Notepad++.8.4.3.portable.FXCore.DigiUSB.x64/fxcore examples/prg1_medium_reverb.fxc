@@ -1,0 +1,231 @@
+; Default program 1
+;
+; Medium reverb
+; Mono in/stereo out
+;
+; pot0 = predelay 
+; pot1 = reverb time
+; pot2 = damping
+; pot3 = reverb level
+; pot4 = not used
+; pot5 = not used
+
+.mem    pdel        4600
+.mem    iap1        156
+.mem    iap2        223
+.mem    iap3        332
+.mem    iap4        448
+;
+.mem    ap1a        1251
+.mem    ap1b        1751
+.mem    ap2a        1443
+.mem    ap2b        1343
+.mem    ap3a        1582
+.mem    ap3b        1981
+.mem    ap4a        1274
+.mem    ap4b        1382
+;
+.mem    del1        3559
+.mem    del2        2945
+.mem    del3        3976
+.mem    del4        4445
+
+.rn     temp        r0
+.rn     hpf1        r1
+.rn     hpf2        r2
+.rn     hpf3        r3
+.rn     hpf4        r4
+.rn     lpf1        r5
+.rn     lpf2        r6
+.rn     lpf3        r7
+.rn     lpf4        r8
+.rn     rt          r9
+.rn     iapout      r10
+.rn     pdelo       r11
+.rn     temp2       r12
+
+;constants:
+
+.equ    kfh         0.01
+.equ    kfl         0.4
+.equ    kiap        0.5
+.equ    klap        0.6
+
+.equ    fs          32768
+.equ    freq        0.8
+.equ    pi          3.14159
+.equ    lfo_f_coeff (2*pi*freq)/fs; calculate the LFO coefficient, SEE NOTE
+
+                                  ; NOTE: The datasheet states the equation is:
+                                  ; (2^31 - 1)*(2*pi*freq)/fs
+                                  ; but we are missing the (2^31 - 1)
+                                  ; this is because the equation solver in the assembler assumes all
+                                  ; calculated values for .creg, .sreg and .mreg directives resolve to +/-1.0 and
+                                  ; will scale them automatically by 2^31-1
+                                  ; if you were to directly enter a vlaue like 0x12345678 then you would
+                                  ; just do it like: .sreg lfo0_f 0x12345678
+
+.sreg   lfo0_f      lfo_f_coeff
+
+;prepare decay time pot:
+
+cpy_cs   temp, pot1
+multri   temp, 0.55
+addsi    acc32, 0.3
+cpy_cc   rt,acc32                 ;rt ranges 0.3 to 0.85
+
+
+cpy_cs   temp, in0      
+wrdel    pdel, temp
+
+wrdld    temp, pdel!
+cpy_cs   acc32, pot0_smth
+multrr   temp, acc32
+interp   acc32, pdel
+
+
+;now run predelayed signal into 4 all passes:
+
+sra      acc32, 2                 ;attenuate signal
+apa      kiap, iap1#
+apb      -kiap, iap1
+apa      kiap, iap2#
+apb      -kiap, iap2
+apa      kiap, iap3#
+apb      -kiap, iap3
+apa      kiap, iap4#
+apb      -kiap, iap4
+cpy_cc   iapout, acc32
+
+
+
+rddel    acc32, del4#
+multrr   acc32, rt
+adds     acc32, iapout
+apa      klap, ap1a#
+apb      -klap, ap1a
+apa      klap, ap1b#
+apb      -klap, ap1b
+cpy_cc   temp, acc32
+subs     acc32, lpf1              ; in - lp
+multri   acc32, kfl               ; *K
+adds     acc32, lpf1              ; +lp
+cpy_cc   lpf1, acc32
+subs     acc32, hpf1              ; in - hp
+multri   acc32, kfh               ; *K
+adds     acc32, hpf1              ; +hp
+cpy_cc   hpf1, acc32
+subs     lpf1, acc32              ; in - hp
+cpy_cc   temp2, acc32
+subs     acc32, temp
+cpy_cs   temp2, pot2
+multrr   acc32, temp2
+adds     acc32, temp
+wrdel    del1, acc32
+
+
+rddel    acc32, del1#
+multrr   acc32, rt
+adds     acc32, iapout
+apa      klap, ap2a#
+apb      -klap, ap2a
+apa      klap, ap2b#
+apb      -klap, ap2b
+cpy_cc   temp, acc32
+subs     acc32, lpf2              ; in - lp
+multri   acc32, kfl               ; *K
+adds     acc32, lpf2              ; +lp
+cpy_cc   lpf2, acc32
+subs     acc32, hpf2              ; in - hp
+multri   acc32, kfh               ; *K
+adds     acc32, hpf2              ; +hp
+cpy_cc   hpf2, acc32
+subs     lpf2, acc32              ; in - hp
+cpy_cc   temp2, acc32
+subs     acc32, temp
+cpy_cs   temp2, pot2
+multrr   acc32, temp2
+adds     acc32, temp
+wrdel    del2, acc32
+
+
+rddel    acc32, del2#
+multrr   acc32, rt
+adds     acc32, iapout
+apa      klap, ap3a#
+apb      -klap, ap3a
+apa      klap, ap3b#
+apb      -klap, ap3b
+cpy_cc   temp, acc32
+subs     acc32, lpf3              ; in - lp
+multri   acc32, kfl               ; *K
+adds     acc32, lpf3              ; +lp
+cpy_cc   lpf3, acc32
+subs     acc32, hpf3              ; in - hp
+multri   acc32, kfh               ; *K
+adds     acc32, hpf3              ; +hp
+cpy_cc   hpf3, acc32
+subs     lpf3, acc32              ; in - hp
+cpy_cc   temp2, acc32
+subs     acc32, temp
+cpy_cs   temp2, pot2
+multrr   acc32, temp2
+adds     acc32, temp
+wrdel    del3, acc32
+
+
+rddel    acc32, del3#
+multrr   acc32, rt
+adds     acc32, iapout
+apa      klap, ap4a#
+apb      -klap, ap4a
+apa      klap, ap4b#
+apb      -klap, ap4b
+cpy_cc   temp, acc32
+subs     acc32, lpf4              ; in - lp
+multri   acc32, kfl               ; *K
+adds     acc32, lpf4              ; +lp
+cpy_cc   lpf4, acc32
+subs     acc32, hpf4              ; in - hp
+multri   acc32, kfh               ; *K
+adds     acc32, hpf4              ; +hp
+cpy_cc   hpf4, acc32
+subs     lpf4, acc32              ; in - hp
+cpy_cc   temp2, acc32
+subs     acc32, temp
+cpy_cs   temp2, pot2
+multrr   acc32, temp2
+adds     acc32, temp
+wrdel    del4, acc32
+
+clracc64                          ; clear the 64-bit accumulator
+machid    0.65, del1              ; add in taps from delays
+machid    0.8, del2+1876
+machid    0.8, del3+2093
+machid    0.7, del4+2793
+sat64     acc32                   ; copy upper 32 bits to acc32
+cpy_cs    temp, pot3_smth         ; get reverb level pot into temp
+multrr    acc32, temp             ; multiply wet signal in acc32 by pot, result in acc32
+cpy_cs    temp, in0               ; get in0 into temp
+adds      temp, acc32             ; add wet to it
+cpy_sc    out0, acc32             ; write to out0
+
+clracc64                          ; clear the 64-bit accumulator
+machid    0.65, del1              ; add in taps from delays
+machid    0.8, del2+923
+machid    0.8, del3+1234
+machid    0.7, del4+2267
+sat64     acc32                   ; copy upper 32 bits to acc32
+cpy_cs    temp, pot3_smth         ; get reverb level pot into temp
+multrr    acc32, temp             ; multiply wet signal in acc32 by pot, result
+cpy_cs    temp, in0               ; get in0 into temp
+adds      temp, acc32             ; add wet to it
+cpy_sc    out1, acc32             ; write to out1
+
+xor       acc32, acc32
+ori       acc32, 100
+cpy_cc    r15, acc32
+chr       lfo0|sin,ap1a+100
+wrdel     ap1a+200, acc32
+chr       lfo0|cos,ap3a+100
+wrdel     ap3a+200, acc32
