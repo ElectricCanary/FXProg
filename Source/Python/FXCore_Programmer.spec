@@ -9,7 +9,7 @@ binaries = [
 
 
 a = Analysis(
-    ['C:\\\\Users\\\\antoi\\\\Desktop\\\\EC\\\\FXCore_Programmer\\\\FXCore_Programmer\\\\FXCore_Programmer\\\\FXCore_Programmer.py'],
+    ['C:\\\\FXCore_Programmer.py'],
     pathex=[],
     binaries=binaries,
     datas=[],
