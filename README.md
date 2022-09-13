@@ -12,7 +12,7 @@ The right fuses are : l: 0xe1 h: 0xdd e: 0xfe
 The connection between the programmer and the FXCore is pretty simple:
 
 Connect PinB0 (physical pin 5) of the programmer to the SDA pin of the FXCore.
-Connect PinB2 (physical pin 7) of the programmer to the SCL pon of the FXCore.
+Connect PinB2 (physical pin 7) of the programmer to the SCL pin of the FXCore.
 Connect both pull-up resistors to +3V3 (1k or 4k7 should be fine).
 
 ## Software
