@@ -32,4 +32,4 @@ The program takes c array files as inputs. This has to be configured in the FXCo
     
 ### Notepad++
 A portable version of notepad++ is included. It has custom macros under the "run" menu for programming the FXCore with DigiUSB. With this you can write and test programs under the same roof.
-It's running tfe FXCore Assembler and FXCoreProgrammer via .cmd files.
+It's running the FXCore Assembler and FXCore_Programmer via .cmd files.
