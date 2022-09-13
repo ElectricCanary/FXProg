@@ -28,7 +28,8 @@ Here's what -h returns :
     -A indicate the I2C address in hex value, default is 0x30
     -M file to run from ram (for debugging DSP, doesn't write in program memory)
     
-The program takes c array files as inputs. This has to be configured in the FXCore Assembler (-c option). That part is taken care of in Notepad++.
+The program takes c array files as inputs. These c array files have to be created by the FXCore Assembler with the -c option. They aren't created by default, a correct assembler instruction would be : FXCoreCmdAsm.exe -c foo foo -a "path\FXCoreProgram.fxc"
+That part is taken care of in Notepad++.
     
 ### Notepad++
 A portable version of notepad++ is included. It has custom macros under the "run" menu for programming the FXCore with DigiUSB. With this you can write and test programs under the same roof.
