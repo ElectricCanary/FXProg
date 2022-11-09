@@ -10,7 +10,7 @@
 # Version: 20091022
 #
 
-import usb # 1.0 not 0.4
+import usb, logging # 1.0 not 0.4
 
 
 def getStringDescriptor(device, index):
@@ -62,7 +62,7 @@ class ArduinoUsbDevice(object):
         """
         """
         # TODO: Return bytes written?
-        #print ("Write:"+hex(byte))
+        logging.debug("Write:"+hex(byte))
         self._transfer(REQUEST_TYPE_SEND, USBRQ_HID_SET_REPORT,
                        byte,
                        []) # ignored

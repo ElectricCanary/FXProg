@@ -11,8 +11,7 @@ You can also load a program to RAM for prototyping.
 The default I2C address is 0x30 but it can be changed.
 """
 
-import usb, sys, struct, getopt, time # 1.0 not 0.4
-sys.path.insert(0,"..")
+import usb, sys, struct, getopt, time, logging # 1.0 not 0.4
 from usbdevice import ArduinoUsbDevice
 
 class DSP:
@@ -85,12 +84,12 @@ class DSP:
         self.theDevice.write(data)
         while(1):
             timeout += 1
-            if timeout >= 300:
+            if timeout >= 10:
                 sys.exit("USB Write Fail")
 
             try:
                 if self.theDevice.read() == data:
-                    #print("OK")
+                    logging.debug("OK")
                     break
                 else:
                     sys.exit("I2C Write Fail")
@@ -103,7 +102,7 @@ class DSP:
         timeout = 0
         while(1):
             timeout += 1
-            if timeout >= 3000:
+            if timeout >= 10:
                 sys.exit("USB Read Fail")
 
             if len(received) >= length:
@@ -111,7 +110,7 @@ class DSP:
 
             try:
                 received.append(self.theDevice.read())
-                #print("received :" + hex(received[len(received)-1]))
+                logging.debug("received :" + hex(received[len(received)-1]))
                 timeout = 0
 
             except:
@@ -129,14 +128,14 @@ class DSP:
         self.deviceID = (status[1] << 8) + status[1]
         self.serialID = (status[11] << 24) + (status[10] << 16) + (status[9] << 8) + status[8]
 
-        #print("creg received :" + str(self.creg_received))
-        #print("sfr received :" + str(self.sfr_received))
-        #print("mreg received :" + str(self.mreg_received))
-        #print("onepreset received :" + str(self.onepreset_received))
-        #print("prg received :" + str(self.prg_received))
-        #print("command status :" + hex(self.command_status))
-        #print("lastcommands :" + hex(self.lastcommand))
-        #print("pgm slots :" + hex(self.pgmslots))
+        logging.debug("creg received :" + str(self.creg_received))
+        logging.debug("sfr received :" + str(self.sfr_received))
+        logging.debug("mreg received :" + str(self.mreg_received))
+        logging.debug("onepreset received :" + str(self.onepreset_received))
+        logging.debug("prg received :" + str(self.prg_received))
+        logging.debug("command status :" + hex(self.command_status))
+        logging.debug("lastcommands :" + hex(self.lastcommand))
+        logging.debug("pgm slots :" + hex(self.pgmslots))
 
     def command_status_error(self):
         if (((self.command_status & 0xF0) == 0x10) or ((self.command_status & 0xF0) == 0x20) or ((self.command_status & 0xF0) == 0x30)):
@@ -195,6 +194,7 @@ class DSP:
             self.USB_write(0)
             self.USB_write(0)
             sys.exit("FXCore not Connected")
+            
         print("Device ID: " + hex(self.deviceID) + "\n" + "Serial: " + hex(self.serialID) + "\n")
 
     def enter_prg(self):
@@ -272,7 +272,7 @@ class DSP:
 def main(argv):
 
     try:
-        opts, args = getopt.getopt(argv,"h0:1:2:3:4:5:6:7:8:9:a:b:c:d:e:f:A:M:",["ifile=","addr="])
+        opts, args = getopt.getopt(argv,"h0:1:2:3:4:5:6:7:8:9:a:b:c:d:e:f:A:M:D",["ifile=","addr="])
     except getopt.GetoptError:
       sys.exit('Argument not recognized')
 
@@ -285,10 +285,11 @@ def main(argv):
 
     for opt, arg in opts:
         if opt in ("-h"):
-            print("\n     use: -0 \"path\FXCoreProgram.h\" -A 0x30 -M \"path\FXCoreProgram.h\"\n \n")
+            print("\n     use: -0 \"path\FXCoreProgram.h\" -M \"path\FXCoreProgram.h\"\n \n")
             print("        -0 -1 -2 -3 -4 -5 -6 -7 -8 -9 -a -b -c -d -e -f : Program the file to the corresponding place from 0 to 15 \n")
             print("        -A indicate the I2C address in hex value, default is 0x30 \n ")
             print("        -M file to run from ram (for debugging DSP, doesn't write in program memory)\n\n")
+            print("        -D Debug log, print all I2C interactions\n\n")
 
         if opt in ("-0", "--ifile"):
             FXCore.inputfile[0] = arg
@@ -323,9 +324,11 @@ def main(argv):
         if opt in ("-f", "--ifile"):
             FXCore.inputfile[15] = arg
         if opt in ("-A", "--addr"):
-            FXCore.addr = int(arg)
+            FXCore.addr = int(arg, base=16)
         if opt in ("-M", "--ifile"):
             FXCore.inputfile[16] = arg
+        if opt in ("-D"):
+            logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
     
     FXCore.initialize()
     for x in range(16):

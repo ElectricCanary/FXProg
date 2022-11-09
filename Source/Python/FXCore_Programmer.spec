@@ -7,11 +7,10 @@ binaries = [
    ('C:\\Windows\\System32\\libusb0.dll', '.'),
 ]
 
-
 a = Analysis(
-    ['C:\\\\FXCore_Programmer.py'],
+    ['FXCore_Programmer.py'],
     pathex=[],
-    binaries=binaries,
+    binaries=[],
     datas=[],
     hiddenimports=['usb'],
     hookspath=[],
@@ -45,4 +44,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='LOGO.ico',
 )
