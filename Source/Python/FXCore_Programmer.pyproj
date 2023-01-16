@@ -12,7 +12,7 @@
     <Name>FXCore_Programmer</Name>
     <RootNamespace>FXCore_Programmer</RootNamespace>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>-0 "C:\Users\antoi\Documents\FXCore\autowah.h" -A 0x30 -D</CommandLineArguments>
+    <CommandLineArguments>-M "C:\Users\antoi\Downloads\Notepad++.8.4.3.portable.FXCore.DigiUSB.x64\fxcore examples\prg0_small_reverb.h" -A 0x30 -D</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

@@ -218,7 +218,7 @@ class DSP:
         self.xfer_sequence([0x01, 0x0F])
         self.xfer_sequence (self.creg, 1, prgnum)
         if self.creg_received:
-            print("creg transfert sucessful\n")
+            print("creg transfer sucessful\n")
         else:
             self.USB_write(0)
             self.USB_write(0)
@@ -229,7 +229,7 @@ class DSP:
         self.xfer_sequence([0x04, 0x7F])
         self.xfer_sequence (self.mreg, 1, prgnum)
         if self.mreg_received:
-            print("mreg transfert sucessful\n")
+            print("mreg transfer sucessful\n")
         else:
             self.USB_write(0)
             self.USB_write(0)
@@ -240,7 +240,7 @@ class DSP:
         self.xfer_sequence([0x02, 0x0B])
         self.xfer_sequence (self.sfr, 1, prgnum)
         if self.sfr_received:
-            print("sfr transfert sucessful\n")
+            print("sfr transfer sucessful\n")
         else:
             self.USB_write(0)
             self.USB_write(0)
@@ -252,7 +252,7 @@ class DSP:
         self.xfer_sequence([(total & 0xFF00) >> 8, total & 0x00FF])
         self.xfer_sequence (self.prg, 1, prgnum)
         if self.prg_received:
-            print("Program transfert sucessful\n")
+            print("Program transfer sucessful\n")
         else:
             self.USB_write(0)
             self.USB_write(0)
@@ -342,6 +342,7 @@ def main(argv):
     
     if FXCore.inputfile[16] != 0:
         FXCore.extract_array(16)
+        FXCore.extract_nbinstr(16)
         FXCore.enter_prg()
         FXCore.send_preset(16)
         FXCore.ram()
