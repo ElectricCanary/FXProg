@@ -10,7 +10,7 @@ binaries = [
 a = Analysis(
     ['FXCore_Programmer.py'],
     pathex=[],
-    binaries=[],
+    binaries=binaries,
     datas=[],
     hiddenimports=['usb'],
     hookspath=[],
