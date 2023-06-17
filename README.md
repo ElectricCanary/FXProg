@@ -1,5 +1,5 @@
 # FXCore_Programmer
-The FXCore Programmer is a cheap and simple programmer for the Experimental Noize FXCore DSP using the Digispark.
+The FXProg is a cheap and simple programmer for the Experimental Noize FXCore DSP using the Digispark.
 
 ## Hardware
 All you need is a Digispark and two pull-up resistors. An AVR programmer is optionnal.
@@ -22,7 +22,7 @@ First of all you'll need to install the DigiUSB driver in the "DigiUSB Windows D
 Once the programmer is properly recognized as "DigiUSB", you can use "FXCore_Programmer.exe" in command line.
 Here's what -h returns :
 
-    use: -0 "path\FXCoreProgram.h" -A 0x30 -M "path\FXCoreProgram.h"
+    use: -0 "path\FXProg.h" -A 0x30 -M "path\FXCoreProgram.h"
     
     -0 -1 -2 -3 -4 -5 -6 -7 -8 -9 -a -b -c -d -e -f : Program the file to the corresponding slot from 0 to 15
     -A indicate the I2C address in hex value, default is 0x30
@@ -33,4 +33,4 @@ That part is taken care of in Notepad++.
     
 ### Notepad++
 A portable version of notepad++ is included. It has custom macros under the "run" menu for programming the FXCore with DigiUSB. With this you can write and test programs under the same roof.
-It's running the FXCore Assembler and FXCore_Programmer via .cmd files.
+It's running the FXCore Assembler and FXProg via .cmd files.
