@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <NotepadPlus>
-    <InternalCommands>
-        <Shortcut id="42034" Ctrl="no" Alt="yes" Shift="no" Key="81" />
-    </InternalCommands>
+    <InternalCommands />
     <Macros>
         <Macro name="Trim Trailing Space and Save" Ctrl="no" Alt="yes" Shift="yes" Key="83">
             <Action type="2" message="0" wParam="42024" lParam="0" sParam="" />
@@ -10,25 +8,13 @@
         </Macro>
     </Macros>
     <UserDefinedCommands>
-        <Command name="Assemble FXCore (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="83">&quot;$(NPP_DIRECTORY)\fxcore\assemble.cmd&quot; -c foo foo -a &quot;$(FULL_CURRENT_PATH)&quot;</Command>
-        <Command name="Run FXCore (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="82">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -M &quot;$(CURRENT_DIRECTORY)\$(&quot;NAME_PART).h&quot;</Command>
-        <Command name="Write Preset 0 (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="96">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -0 &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).h&quot;</Command>
-        <Command name="Write Preset 1 (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="97">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -1 &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).h&quot;</Command>
-        <Command name="Write Preset 2 (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="98">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -2 &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).h&quot;</Command>
-        <Command name="Write Preset 3 (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="99">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -3 &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).h&quot;</Command>
-        <Command name="Write Preset 4 (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="100">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -4 &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).h&quot;</Command>
-        <Command name="Write Preset 5 (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="101">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -5 &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).h&quot;</Command>
-        <Command name="Write Preset 6 (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="102">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -6 &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).h&quot;</Command>
-        <Command name="Write Preset 7 (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="103">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -7 &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).h&quot;</Command>
-        <Command name="Write Preset 8 (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="104">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -8 &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).h&quot;</Command>
-        <Command name="Write Preset 9 (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="105">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -9 &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).h&quot;</Command>
-        <Command name="Write Preset 10 (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="65">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -a &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).h&quot;</Command>
-        <Command name="Write Preset 11 (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="66">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -b &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).h&quot;</Command>
-        <Command name="Write Preset 12 (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="67">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -c &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).h&quot;</Command>
-        <Command name="Write Preset 13 (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="68">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -d &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).h&quot;</Command>
-        <Command name="Write Preset 14 (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="69">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -e &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).h&quot;</Command>
-        <Command name="Write Preset 15 (DigiUSB)" Ctrl="no" Alt="yes" Shift="no" Key="70">&quot;$(NPP_DIRECTORY)\fxcore\FXCore_Programmer.cmd&quot; -f &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).h&quot;</Command>
-        <Command name="View FXCore Program Listing" Ctrl="no" Alt="yes" Shift="no" Key="76">notepad++ &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).lst&quot;</Command>
+        <Command name="Preprocess and assemble FXCore" Ctrl="no" Alt="yes" Shift="no" Key="65">&quot;C:\Program Files\Experimental Noize\FXCore\assemble.cmd&quot; &quot;$(FULL_CURRENT_PATH)&quot; &quot;$(CURRENT_DIRECTORY)&quot; $(NAME_PART) &quot;$(CURRENT_DIRECTORY)\Libraries&quot; -c foo foo</Command>
+        <Command name="View FXCore Assembler Listing" Ctrl="no" Alt="yes" Shift="no" Key="76">notepad++ &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).lst&quot;</Command>
+        <Command name="View FXCore Preprocessor Listing" Ctrl="no" Alt="yes" Shift="yes" Key="76">notepad++ &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).fpl&quot;</Command>
+        <Command name="Load resulting .fxo file to view/edit" Ctrl="no" Alt="yes" Shift="no" Key="80">notepad++ &quot;$(CURRENT_DIRECTORY)\$(NAME_PART).fxo&quot;</Command>
+        <Command name="Preprocess, assemble and run from RAM FXCore 0x30" Ctrl="no" Alt="yes" Shift="no" Key="82">&quot;C:\Program Files\Experimental Noize\FXCore\assemble.cmd&quot; &quot;$(FULL_CURRENT_PATH)&quot; &quot;$(CURRENT_DIRECTORY)&quot; $(NAME_PART) &quot;$(CURRENT_DIRECTORY)\Libraries&quot; -r</Command>
+        <Command name="Preprocess, assemble and program location 0 FXCore 0x30" Ctrl="yes" Alt="yes" Shift="no" Key="96">&quot;C:\Program Files\Experimental Noize\FXCore\assemble.cmd&quot; &quot;$(FULL_CURRENT_PATH)&quot; &quot;$(CURRENT_DIRECTORY)&quot; $(NAME_PART) &quot;$(CURRENT_DIRECTORY)\Libraries&quot; -p 0</Command>
+        <Command name="Preprocess, assemble and program location 1 FXCore 0x30" Ctrl="yes" Alt="yes" Shift="no" Key="97">&quot;C:\Program Files\Experimental Noize\FXCore\assemble.cmd&quot; &quot;$(FULL_CURRENT_PATH)&quot; &quot;$(CURRENT_DIRECTORY)&quot; $(NAME_PART) &quot;$(CURRENT_DIRECTORY)\Libraries&quot; -p 1</Command>
     </UserDefinedCommands>
     <PluginCommands />
     <ScintillaKeys />
